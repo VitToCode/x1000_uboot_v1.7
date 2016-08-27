@@ -482,9 +482,18 @@ void lcd_clear_black(void)
 #endif
 }
 
-#define START_COL 327 
-#define START_ROW 102
+#if CONFIG_VIDEO_FRD240A3602B
+ #define START_COL 327 
+ #define START_ROW 102
+ #define LINE_LEN 65
+#endif
+
+#ifdef CONFIG_VIDEO_FRD20024N
+#define START_COL 60
+#define START_ROW 60
 #define LINE_LEN 65
+#endif
+
 void lcd_display_bat_line(int line,int color)
 {
 	int *lcdbase_p ;
@@ -1331,7 +1340,12 @@ static void *lcd_logo(void)
 #if defined(CONFIG_RLE_LCD_LOGO) && !defined(CONFIG_LCD_INFO_BELOW_LOGO)
 	rle_plot(RLE_LOGO_DEFAULT_ADDR, lcd_base);
 #else
+#ifdef CONFIG_VIDEO_FRD240A3602B
 	bitmap_plot(320, 80);
+#endif
+#ifdef CONFIG_VIDEO_FRD20024N
+	bitmap_plot(212, 36);
+#endif
 #endif
 	flush_cache_all();
 #ifdef CONFIG_LCD_INFO
