@@ -818,10 +818,6 @@ void lcd_enable(void)
 
 void lcd_disable(void)
 {
-#ifdef CONFIG_VIDEO_FRD20024N
-	return ;
-#endif
-
 	unsigned ctrl;
 	if (lcd_enable_state == 1) {
 		if (lcd_config_info.lcd_type != LCD_TYPE_SLCD) {

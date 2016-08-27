@@ -139,7 +139,7 @@ void display_battery_capacity(int line)
 {
 	int i;
 	for(i = 1;i <= line; i++){
-		if(!gpio_get_value(63) ||(gpio_get_value(40)))
+		if(!gpio_get_value(63) ||(gpio_get_value(48)))
 			return;
 		lcd_display_bat_line(i,0xff00);
 		lcd_sync();
@@ -168,9 +168,35 @@ static void sfc_boot(unsigned int mem_address,unsigned int sfc_addr)
 	}
 	gpio_port_direction_input(1,31);
 	gpio_port_direction_input(1,8);
+	gpio_port_direction_input(1,16);
 	update_flag = get_update_flag();
 	if((update_flag & 0x03) != 0x03){
 		while (gpio_get_value(63) && (!(gpio_get_value(40)))) {
+#if 1
+			bat_cap = 99;
+			line = 117;
+			
+			if (first && bat_cap == 100) {
+				lcd_enable();
+				lcd_display_bat_cap_first(100);
+				mdelay(100);
+				//lcd_disable();
+			} else {
+				lcd_enable();
+				lcd_display_zero_cap();
+				mdelay(100);
+				if (line < 5)
+					line = 5;
+				display_battery_capacity(line);
+				mdelay(100);
+				//lcd_disable();
+				if (bat_cap == 100)
+					first = 1;
+				else
+					first = 0;
+			}
+		}
+#else
 			if (bat_cap != get_battery_current_cpt()) {
 				bat_cap = get_battery_current_cpt();
 				line = get_line_count();
@@ -196,6 +222,9 @@ static void sfc_boot(unsigned int mem_address,unsigned int sfc_addr)
 					first = 0;
 			}
 		}
+#endif
+		lcd_disable();
+
 		if(gpio_get_value(40)){
 
 			printf("usb have remove ,power off!!!\n");
