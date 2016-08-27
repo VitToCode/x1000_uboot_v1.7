@@ -49,6 +49,10 @@ extern void boot_mode_select(void);
 extern int axp173_regulator_init(void);
 #endif
 
+#ifdef CONFIG_PMU_CW2015
+extern int cw2015_regulator_init(void);
+#endif
+
 #if defined(CONFIG_CMD_BATTERYDET) && defined(CONFIG_BATTERY_INIT_GPIO)
 static void battery_init_gpio(void)
 {
@@ -61,6 +65,9 @@ int regulator_init(void)
 	int ret;
 #ifdef CONFIG_PMU_AXP173
 	ret = axp173_regulator_init();
+#endif
+#ifdef CONFIG_PMU_CW2015
+	ret = cw2015_regulator_init();
 #endif
 	return ret;
 }
@@ -148,7 +155,12 @@ extern void low_power_detect(void);
 #ifdef CONFIG_SPL_BUILD
 void spl_board_init(void)
 {
+#ifdef CONFIG_PMU_AXP173
 	axp173_regulator_init();
+#endif
+#ifdef CONFIG_PMU_CW2015
+	cw2015_regulator_init();
+#endif
 	/* close boost */
 	gpio_request(32 * 1 + 5, NULL);
 	gpio_direction_output(32 * 1 + 5, 0);
