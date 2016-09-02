@@ -138,8 +138,8 @@ int get_line_count()
 void display_battery_capacity(int line)
 {
 	int i;
-	for(i = 1;i <= line; i++){
-		if(!gpio_get_value(63) ||(gpio_get_value(48)))
+	for(i = 1;i <= line; i++) {
+		if(!gpio_get_value(63) ||(gpio_get_value(40)))
 			return;
 		lcd_display_bat_line(i,0xff00);
 		lcd_sync();
@@ -172,6 +172,7 @@ static void sfc_boot(unsigned int mem_address,unsigned int sfc_addr)
 	update_flag = get_update_flag();
 	if((update_flag & 0x03) != 0x03){
 		while (gpio_get_value(63) && (!(gpio_get_value(40)))) {
+		//while (1) {
 #if 1
 			bat_cap = 99;
 			line = 117;
