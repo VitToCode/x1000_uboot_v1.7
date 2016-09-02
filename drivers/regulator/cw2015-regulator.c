@@ -7,6 +7,7 @@
 #include <linux/list.h>
 #include <regulator.h>
 #include <ingenic_soft_i2c.h>
+#include <power/cw2015.h>
 #include <power/axp173.h>
 
 #define CW2015_I2C_ADDR    0x62
@@ -63,10 +64,10 @@ int cw2015_regulator_init(void)
 	if(ret) {
 		printf("probe cw2015_i2c error, i2c addr 0x%x \n\n\n", CW2015_I2C_ADDR);
 		return -EIO;
+	} else {
+		printf("successful \n");
 	}
-	else 
-		printf("successful \n\n\n");
-	
+
 	return 0;
 }
 

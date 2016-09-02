@@ -1,4 +1,5 @@
 #include <power/axp173.h>
+#include <power/cw2015.h>
 #include <config.h>
 #include <common.h>
 
@@ -12,6 +13,19 @@ extern int cw2015_write_reg(u8 reg, u8 *val);
 extern int get_battery_flag(void);
 
 static int which_battery = -1;
+
+#define SIZE_BATINFO    64
+
+static unsigned char config_info[SIZE_BATINFO] = {
+	0x15,0x86,0x76,0x67,0x53,0x44,0x4D,0x54,
+	0x54,0x4B,0x4D,0x53,0x62,0x66,0x60,0x55,
+	0x4B,0x41,0x39,0x36,0x3D,0x46,0x4D,0x5A,
+	0x5C,0x47,0x0A,0x3E,0x19,0x32,0x59,0x76,
+	0x81,0x86,0x8A,0x8B,0x3F,0x19,0x96,0x2C,
+	0x00,0x1F,0x52,0x87,0x8F,0x91,0x94,0x52,
+	0x82,0x8C,0x92,0x96,0x8C,0x5E,0x64,0xCB,
+	0x2F,0x7D,0x72,0xA5,0xB5,0xC1,0x5C,0x89
+};
 
 struct ocv2soc ocv2soc[] = {
         {4321, 100},
@@ -54,6 +68,153 @@ enum adc_type {
         BAT_VOL,
         BAT_CUR,
 };
+
+static int cw_update_config_info(void)
+{
+	int ret;
+	u8 reg_val;
+	int i;
+	u8 reset_val;
+
+	/* make sure no in sleep mode */
+	ret = cw2015_read_reg(REG_MODE, &reg_val, 1);
+	if (ret < 0)
+		return ret;
+
+	reset_val = reg_val;
+	if((reg_val & MODE_SLEEP_MASK) == MODE_SLEEP) {
+		printf( "Error, device in sleep mode, cannot update battery info\n");
+		return -1;
+	}
+
+	/* update new battery info */
+	for (i = 0; i < SIZE_BATINFO; i++) {
+		printf("cw_bat->plat_data->cw_bat_config_info[%d] = 0x%x\n", i, config_info[i]);
+		ret = cw2015_write_reg(REG_BATINFO + i, &config_info[i]);
+
+		if (ret < 0)
+			return ret;
+	}
+
+	/* readback & check */
+	for (i = 0; i < SIZE_BATINFO; i++) {
+		ret = cw2015_read_reg(REG_BATINFO + i, &reg_val, 1);
+		if (reg_val != config_info[i])
+			return -1;
+	}
+
+	/* set cw2015/cw2013 to use new battery info */
+	ret = cw2015_read_reg(REG_CONFIG, &reg_val, 1);
+	if (ret < 0)
+		return ret;
+
+	reg_val |= CONFIG_UPDATE_FLG;   /* set UPDATE_FLAG */
+	reg_val &= 0x07;                /* clear ATHD */
+	reg_val |= ATHD;                /* set ATHD */
+	ret = cw2015_write_reg(REG_CONFIG, &reg_val);
+	if (ret < 0)
+		return ret;
+
+	/* check 2015/cw2013 for ATHD & update_flag */
+	ret = cw2015_read_reg(REG_CONFIG, &reg_val, 1);
+	if (ret < 0)
+		return ret;
+
+	if (!(reg_val & CONFIG_UPDATE_FLG))
+		printf("update flag for new battery info have not set..\n");
+
+	if ((reg_val & 0xf8) != ATHD)
+		printf( "the new ATHD have not set..\n");
+
+	/* reset */
+	reset_val &= ~(MODE_RESTART);
+	reg_val = reset_val | MODE_RESTART;
+	ret = cw2015_write_reg(REG_MODE, &reg_val);
+	if (ret < 0)
+		return ret;
+
+	mdelay(10);
+	ret = cw2015_write_reg(REG_MODE, &reset_val);
+	if (ret < 0)
+		return ret;
+	mdelay(10);
+
+	return 0;
+}
+
+static int cw_init(void)
+{
+	int ret;
+	int i;
+	u8 reg_val = MODE_SLEEP;
+
+	if ((reg_val & MODE_SLEEP_MASK) == MODE_SLEEP) {
+		reg_val = MODE_NORMAL;
+		ret = cw2015_write_reg(REG_MODE, &reg_val);
+		if (ret < 0)
+			return ret;
+	}
+
+	ret = cw2015_read_reg(REG_CONFIG, &reg_val, 1);
+	if (ret < 0)
+		return ret;
+
+	if ((reg_val & 0xf8) != ATHD) {
+		printf("the new ATHD have not set\n");
+		reg_val &= 0x07;    /* clear ATHD */
+		reg_val |= ATHD;    /* set ATHD */
+		ret = cw2015_write_reg(REG_CONFIG, &reg_val);
+		if (ret < 0)
+			return ret;
+	}
+
+	ret = cw2015_read_reg(REG_CONFIG, &reg_val, 1);
+	if (ret < 0)
+		return ret;
+
+	if (!(reg_val & CONFIG_UPDATE_FLG)) {
+		printf("update flag for new battery info have not set\n");
+		ret = cw_update_config_info();
+		if (ret < 0)
+			return ret;
+	} else {
+		for(i = 0; i < SIZE_BATINFO; i++) {
+			ret = cw2015_read_reg((REG_BATINFO + i), &reg_val, 1);
+			if (ret < 0)
+				return ret;
+
+			if (config_info[i] != reg_val)
+				break;
+		}
+
+		if (i != SIZE_BATINFO) {
+			printf("update flag for new battery info have not set\n");
+			ret = cw_update_config_info();
+			if (ret < 0)
+				return ret;
+		}
+	}
+
+	for (i = 0; i < 30; i++) {
+		ret = cw2015_read_reg(REG_SOC, &reg_val, 1);
+		if (ret < 0)
+			return ret;
+		else if (reg_val <= 0x64)
+			break;
+
+		mdelay(100);
+		if (i > 25)
+			printf("cw2015/cw2013 input unvalid power error\n");
+
+	}
+	if (i >=30){
+		reg_val = MODE_SLEEP;
+		ret = cw2015_write_reg(REG_MODE, &reg_val);
+		printf("cw2015/cw2013 input unvalid power error_2\n");
+		return -1;
+	}
+	return 0;
+}
 
 static unsigned int axp173_get_single_adc_data(enum adc_type type)
 {
@@ -251,6 +412,7 @@ int get_battery_status(void)
 
 int get_battery_current_cpt(void)
 {
+#if 0
 	int cpt = 0;
 	unsigned int voltage = 0;
 
@@ -261,8 +423,41 @@ int get_battery_current_cpt(void)
 		return cpt;
 	voltage = jz_current_battery_voltage();
 	cpt = jz_current_battery_current_cpt(voltage);
+#else
+	int cpt = 0;
+
+	cw_init();
+
+	int val;
+	int count;
+	
+
+	while (1) {
+		cw_init();
+
+		printf("--------------------\n");
+		
+		cw2015_read_reg(0x04, &val, 1);
+		printf("0x04: %d \n", val);
+		count = val * 256;
+
+		cw2015_read_reg(0x05, &val, 1);
+		printf("0x05: %d \n", val);
+		count += val;
+
+		printf("count: %d \n", count);
+
+		cw2015_read_reg(0x06, &val, 1);
+		printf("0x06: %d \n\n", val);
+
+		mdelay(2000);
+		printf("***************************\n");
+	}
+	
+#endif
 	return cpt;
 }
+
 
 int low_power_detect(void)
 {
@@ -315,4 +510,5 @@ int axp173_disable_charge(void)
 
 	return 0;
 }
+
 

@@ -174,6 +174,8 @@ static void sfc_boot(unsigned int mem_address,unsigned int sfc_addr)
 		while (gpio_get_value(63) && (!(gpio_get_value(40)))) {
 		//while (1) {
 #if 1
+			get_battery_current_cpt();
+
 			bat_cap = 99;
 			line = 117;
 			

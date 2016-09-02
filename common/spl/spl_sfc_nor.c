@@ -248,6 +248,8 @@ void spl_sfc_nor_load_image(void)
 		usb_insert = !gpio_get_value(40);
 		low_power = low_power_detect();
 
+		usb_insert = 1;
+
 		if (rsr & CPM_RSR_WR) {
 			/* reboot */
 			if (hspr == 0x50574f46)
