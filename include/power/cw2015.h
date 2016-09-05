@@ -21,5 +21,14 @@
 #define CONFIG_UPDATE_FLG       (0x1<<1)
 #define ATHD                    (0xa<<3)        //ATHD = 10%
 
+//#define x_debug
+
+#ifdef x_debug
+#define debug_x(fmt, args...) \
+	printf("[cw2015] --> "fmt, ##args)
+#else
+#define debug_x(fmt, args...) \
+	do{}while(0)
+#endif
 
 #endif

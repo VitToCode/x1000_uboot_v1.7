@@ -44,11 +44,11 @@ int cw2015_power_off(void)
 
 	ret = cw2015_read_reg(AXP173_POWER_OFF, &reg_val,1);
 	if (ret < 0)
-		printf("Error in reading the POWEROFF_Reg\n");
+		debug_x("Error in reading the POWEROFF_Reg\n");
 	reg_val |= (1 << 7);
 	ret = cw2015_write_reg(AXP173_POWER_OFF, &reg_val);
 	if (ret < 0)
-		printf("Error in writing the POWEROFF_Reg\n");
+		debug_x("Error in writing the POWEROFF_Reg\n");
 	return 0;
 }
 
@@ -62,10 +62,10 @@ int cw2015_regulator_init(void)
 
 	ret = i2c_probe(i2c, CW2015_I2C_ADDR);
 	if(ret) {
-		printf("probe cw2015_i2c error, i2c addr 0x%x \n\n\n", CW2015_I2C_ADDR);
+		debug_x("probe cw2015_i2c error, i2c addr 0x%x \n\n\n", CW2015_I2C_ADDR);
 		return -EIO;
 	} else {
-		printf("successful \n");
+		debug_x("successful \n");
 	}
 
 	return 0;

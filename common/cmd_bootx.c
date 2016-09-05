@@ -166,18 +166,19 @@ static void sfc_boot(unsigned int mem_address,unsigned int sfc_addr)
 		lcd_disable();
 		jz_hibernate();
 	}
+		
 	gpio_port_direction_input(1,31);
 	gpio_port_direction_input(1,8);
 	gpio_port_direction_input(1,16);
+	
 	update_flag = get_update_flag();
-	if((update_flag & 0x03) != 0x03){
+	if((update_flag & 0x03) != 0x03) {
 		while (gpio_get_value(63) && (!(gpio_get_value(40)))) {
 		//while (1) {
-#if 1
-			get_battery_current_cpt();
-
-			bat_cap = 99;
-			line = 117;
+			if (bat_cap != get_battery_current_cpt()) {
+				bat_cap = get_battery_current_cpt();
+				line = get_line_count();
+			}
 			
 			if (first && bat_cap == 100) {
 				lcd_enable();
@@ -199,41 +200,14 @@ static void sfc_boot(unsigned int mem_address,unsigned int sfc_addr)
 					first = 0;
 			}
 		}
-#else
-			if (bat_cap != get_battery_current_cpt()) {
-				bat_cap = get_battery_current_cpt();
-				line = get_line_count();
-			}
+	}
+	lcd_disable();
 
-			if (first && bat_cap == 100) {
-				lcd_enable();
-				lcd_display_bat_cap_first(100);
-				mdelay(100);
-				lcd_disable();
-			} else {
-				lcd_enable();
-				lcd_display_zero_cap();
-				mdelay(100);
-				if (line < 5)
-					line = 5;
-				display_battery_capacity(line);
-				mdelay(100);
-				lcd_disable();
-				if (bat_cap == 100)
-					first = 1;
-				else
-					first = 0;
-			}
-		}
-#endif
-		lcd_disable();
+	if(gpio_get_value(40)) {
 
-		if(gpio_get_value(40)){
-
-			printf("usb have remove ,power off!!!\n");
-			//call axp173 power off
-			jz_hibernate();
-		}
+		printf("usb have remove ,power off!!!\n");
+		//call axp173 power off
+		jz_hibernate();
 	}
 #endif
 	printf("Enter SFC_boot routine ...\n");

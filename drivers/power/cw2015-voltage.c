@@ -83,13 +83,13 @@ static int cw_update_config_info(void)
 
 	reset_val = reg_val;
 	if((reg_val & MODE_SLEEP_MASK) == MODE_SLEEP) {
-		printf( "Error, device in sleep mode, cannot update battery info\n");
+		debug_x( "Error, device in sleep mode, cannot update battery info\n");
 		return -1;
 	}
 
 	/* update new battery info */
 	for (i = 0; i < SIZE_BATINFO; i++) {
-		printf("cw_bat->plat_data->cw_bat_config_info[%d] = 0x%x\n", i, config_info[i]);
+		debug_x("cw_bat->plat_data->cw_bat_config_info[%d] = 0x%x\n", i, config_info[i]);
 		ret = cw2015_write_reg(REG_BATINFO + i, &config_info[i]);
 
 		if (ret < 0)
@@ -121,10 +121,10 @@ static int cw_update_config_info(void)
 		return ret;
 
 	if (!(reg_val & CONFIG_UPDATE_FLG))
-		printf("update flag for new battery info have not set..\n");
+		debug_x("update flag for new battery info have not set..\n");
 
 	if ((reg_val & 0xf8) != ATHD)
-		printf( "the new ATHD have not set..\n");
+		debug_x( "the new ATHD have not set..\n");
 
 	/* reset */
 	reset_val &= ~(MODE_RESTART);
@@ -152,7 +152,7 @@ static int cw_init(void)
 		reg_val = MODE_NORMAL;
 		ret = cw2015_write_reg(REG_MODE, &reg_val);
 		if (ret < 0) {
-			printf("[%s %s %d] error\n",
+			debug_x("[%s %s %d] error\n",
 				__FILE__, __func__, __LINE__);
 			return ret;
 		}
@@ -160,17 +160,17 @@ static int cw_init(void)
 
 	ret = cw2015_read_reg(REG_CONFIG, &reg_val, 1);
 	if (ret < 0) {
-		printf("[%s %s %d] error\n",
+		debug_x("[%s %s %d] error\n",
 			__FILE__, __func__, __LINE__);
 		return ret;
 	}
 	if ((reg_val & 0xf8) != ATHD) {
-		printf("the new ATHD have not set\n");
+		debug_x("the new ATHD have not set\n");
 		reg_val &= 0x07;    /* clear ATHD */
 		reg_val |= ATHD;    /* set ATHD */
 		ret = cw2015_write_reg(REG_CONFIG, &reg_val);
 		if (ret < 0) {
-			printf("[%s %s %d] error\n",
+			debug_x("[%s %s %d] error\n",
 				__FILE__, __func__, __LINE__);
 			return ret;
 		}
@@ -178,16 +178,16 @@ static int cw_init(void)
 
 	ret = cw2015_read_reg(REG_CONFIG, &reg_val, 1);
 	if (ret < 0) {
-		printf("[%s %s %d] error\n",
+		debug_x("[%s %s %d] error\n",
 				__FILE__, __func__, __LINE__);
 		return ret;
 	}
 
 	if (!(reg_val & CONFIG_UPDATE_FLG)) {
-		printf("update flag for new battery info have not set\n");
+		debug_x("update flag for new battery info have not set\n");
 		ret = cw_update_config_info();
 		if (ret < 0) {
-			printf("[%s %s %d] error\n",
+			debug_x("[%s %s %d] error\n",
 				__FILE__, __func__, __LINE__);
 			return ret;
 		}
@@ -195,7 +195,7 @@ static int cw_init(void)
 		for(i = 0; i < SIZE_BATINFO; i++) {
 			ret = cw2015_read_reg((REG_BATINFO + i), &reg_val, 1);
 			if (ret < 0) {
-				printf("[%s %s %d] error\n",
+				debug_x("[%s %s %d] error\n",
 					__FILE__, __func__, __LINE__);
 				return ret;
 			}
@@ -205,10 +205,10 @@ static int cw_init(void)
 		}
 
 		if (i != SIZE_BATINFO) {
-			printf("update flag for new battery info have not set\n");
+			debug_x("update flag for new battery info have not set\n");
 			ret = cw_update_config_info();
 			if (ret < 0) {
-				printf("[%s %s %d] error\n",
+				debug_x("[%s %s %d] error\n",
 					__FILE__, __func__, __LINE__);
 				return ret;
 			}
@@ -218,7 +218,7 @@ static int cw_init(void)
 	for (i = 0; i < 30; i++) {
 		ret = cw2015_read_reg(REG_SOC, &reg_val, 1);
 		if (ret < 0) {
-			printf("[%s %s %d] error\n",
+			debug_x("[%s %s %d] error\n",
 				__FILE__, __func__, __LINE__);
 			return ret;
 		}
@@ -227,17 +227,17 @@ static int cw_init(void)
 
 		mdelay(100);
 		if (i > 25)
-			printf("cw2015/cw2013 input unvalid power error\n");
+			debug_x("cw2015/cw2013 input unvalid power error\n");
 
 	}
 	if (i >=30) {
 		reg_val = MODE_SLEEP;
 		ret = cw2015_write_reg(REG_MODE, &reg_val);
-		printf("cw2015/cw2013 input unvalid power error_2\n");
+		debug_x("cw2015/cw2013 input unvalid power error_2\n");
 		return -1;
 	}
 
-	printf("[%s %s %d] cw_init success\n",
+	debug_x("[%s %s %d] cw_init success\n",
 		__FILE__, __func__, __LINE__);
 	return 0;
 }
@@ -438,42 +438,13 @@ int get_battery_status(void)
 
 int get_battery_current_cpt(void)
 {
-#if 0
 	int cpt = 0;
-	unsigned int voltage = 0;
 
-	get_battery_nv_flag();
-	mdelay(250);
-	cpt = get_battery_status();
-	if(cpt == 100)
-		return cpt;
-	voltage = jz_current_battery_voltage();
-	cpt = jz_current_battery_current_cpt(voltage);
-#else
-	int cpt = 0;
-	int count = 0;
-	//cw_init();
+	cw_init();
 
-	int val;
+	cw2015_read_reg(0x04, &cpt, 1);
 
-	while (1) {
-
-		cw2015_write_reg(0xa, &val);
-		cw_init();
-
-		printf("-------------------->count: %d\n", count);
-		count++;
-
-		cw2015_read_reg(0x04, &val, 1);
-		printf("0x04: %d\n", val);
-
-		mdelay(2000);
-		printf("***************************\n");
-		val = 0xf;
-	}
-	
-#endif
-	return cpt;
+	return cpt;	
 }
 
 
@@ -509,7 +480,7 @@ void disable_ldo4(void)
 	tmp &= (~(1 << 1));
 	ret = cw2015_write_reg(reg, &tmp);
 	if (ret < 0)
-		printf("Error in writing the POWER_ON_OFF_REG_Reg\n");
+		debug_x("Error in writing the POWER_ON_OFF_REG_Reg\n");
 }
 
 int axp173_disable_charge(void)
@@ -522,7 +493,7 @@ int axp173_disable_charge(void)
 	temp &= 0x7f;
 	ret = cw2015_write_reg(reg, &temp);
 	if (ret < 0) {
-		printf("Error in writing the POWER_ON_OFF_REG_Reg\n");
+		debug_x("Error in writing the POWER_ON_OFF_REG_Reg\n");
 		return -1;
 	}
 
