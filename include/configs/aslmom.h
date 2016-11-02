@@ -135,7 +135,7 @@
 /**
  * Boot arguments definitions.
  */
-#define BOOTARGS_COMMON "console=ttyS2,57600n8 consoleblank=0 mem=32M@0x0 "
+#define BOOTARGS_COMMON "console=ttyS2,57600n8 consoleblank=0 mem=32M "
 #if defined(CONFIG_SPL_NOR_SUPPORT) || defined(CONFIG_SPL_SFC_SUPPORT)
 	#if defined(CONFIG_SPL_SFC_SUPPORT)
 		#if defined(CONFIG_SPL_SFC_NOR)
@@ -172,7 +172,7 @@
 #ifdef CONFIG_SPL_OS_BOOT
 #define CONFIG_SPL_OS_OFFSET        (0x100000) /* spi offset of zImage being loaded */
 #ifdef CONFIG_GET_BAT_PARAM
-#define CONFIG_SPL_BOOTARGS         BOOTARGS_COMMON "ip=off init=/linuxrc rootfstype=cramfs root=/dev/mtdblock3 bat=2200 rw"
+#define CONFIG_SPL_BOOTARGS         BOOTARGS_COMMON "rootfstype=cramfs root=/dev/mtdblock4 bat=2200"
 #else
 #define CONFIG_SPL_BOOTARGS         BOOTARGS_COMMON "ip=off init=/linuxrc rootfstype=cramfs root=/dev/mtdblock3 rw"
 #endif
@@ -187,6 +187,11 @@
 #define CONFIG_BOOTCOMMAND          "bootx sfc 0x80f00000 0xd00000"
 #endif /* CONFIG_UPDATE_LEGACY */
 #endif /* CONFIG_SPL_OS_BOOT */
+
+#define CONFIG_SPL_NV_BASE          CONFIG_SYS_TEXT_BASE
+#define NV_AREA_BASE_ADDR           (0x40000)
+#define CONFIG_SPL_OTA_OS_OFFSET       (0xd00000) /* spi offset of zImage being loaded */
+#define CONFIG_SYS_SPL_OTA_ARGS_ADDR BOOTARGS_COMMON "ip=off init=/linuxrc rootfstype=cramfs root=/dev/mtdblock5 rw"
 
 
 #define PARTITION_NUM 10

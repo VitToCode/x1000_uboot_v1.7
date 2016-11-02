@@ -38,7 +38,7 @@
 #define CONFIG_CPU_SEL_PLL		APLL
 #define CONFIG_DDR_SEL_PLL		MPLL
 #define CONFIG_SYS_CPU_FREQ		1008000000
-#define CONFIG_SYS_MEM_FREQ		100000000
+#define CONFIG_SYS_MEM_FREQ		200000000
 
 #define CONFIG_SYS_EXTAL		24000000	/* EXTAL freq: 24 MHz */
 #define CONFIG_SYS_HZ			1000 /* incrementer freq */
@@ -65,7 +65,11 @@
 #define CONFIG_DDR_CS0			1	/* 1-connected, 0-disconnected */
 #define CONFIG_DDR_CS1			0	/* 1-connected, 0-disconnected */
 #define CONFIG_DDR_DW32			0	/* 1-32bit-width, 0-16bit-width */
+#ifdef CONFIG_128MB_LPDDR
+#define CONFIG_MDDR_ECM220ACBCN_50
+#else
 #define CONFIG_MDDR_H5MS5122DFR_J3M
+#endif
 /*#define CONFIG_DDR3_TSD34096M1333C9_E*/
 
 #define CONFIG_AUDIO_CAL_DIV
@@ -94,69 +98,69 @@
 #endif
 
 /**
- * Boot arguments definitions.
+ * common boot arguments definitions.
  */
-#define BOOTARGS_COMMON "console=ttyS2,57600n8 consoleblank=0 mem=32M@0x0 "
-#if defined(CONFIG_SPL_NOR_SUPPORT) || defined(CONFIG_SPL_SFC_SUPPORT)
-	#if defined(CONFIG_SPL_SFC_SUPPORT)
-		#if defined(CONFIG_SPL_SFC_NOR)
-			/*#define	 CONFIG_BOOTARGS BOOTARGS_COMMON "ip=off root=/dev/ram0 rw rdinit=/linuxrc"*/
-			/* #define	 CONFIG_BOOTARGS BOOTARGS_COMMON "ip=192.168.4.254:192.168.4.1:192.168.4.1:255.255.255.0 rootdelay=2 nfsroot=192.168.4.13:/home/fpga/kyhe/rootfs rw" */
-			/*#define	 CONFIG_BOOTARGS BOOTARGS_COMMON "ip=off init=/linuxrc rootfstype=jffs2 root=/dev/mtdblock2 rw"*/
-			#define  CONFIG_BOOTARGS BOOTARGS_COMMON "ip=off rootfstype=cramfs root=/dev/mtdblock2 ro init=/linuxrc"
-			#define CONFIG_BOOTCOMMAND "sfcnor read 0x40000 0x800000 0x80800000 ;bootm 0x80800000"
-		#else  /* CONFIG_SPL_SFC_NAND */
-			/*#define	 CONFIG_BOOTARGS BOOTARGS_COMMON "ip=off root=/dev/ram0 rw rdinit=/linuxrc"
-			#define CONFIG_BOOTCOMMAND "sfcnand read 0x80600000 0x800000 0x500000 ;bootm 0x80600000"*/
-			#define  CONFIG_BOOTARGS BOOTARGS_COMMON "ip=off init=/linuxrc ubi.mtd=2 root=ubi0:rootfs rootfstype=ubifs rw"
-                        #define CONFIG_BOOTCOMMAND "sfcnand read 0x100000 0x400000 0x80600000 ;bootm 0x80600000"
+#if defined CONFIG_128MB_LPDDR
+#define BOOTARGS_BASE "console=ttyS2,57600n8 consoleblank=0 mem=128M@0x0 "
+#elif defined CONFIG_64MB_LPDDR
+#define BOOTARGS_BASE "console=ttyS2,57600n8 consoleblank=0 mem=64M@0x0 "
+#else
+#define BOOTARGS_BASE "console=ttyS2,57600n8 consoleblank=0 mem=32M@0x0 "
+#endif
 
-		#endif
-	#else
-/*#define	 CONFIG_BOOTARGS BOOTARGS_COMMON " ip=192.168.10.205:192.168.10.1:192.168.10.1:255.255.255.0 nfsroot=192.168.4.3:/home/rootdir rw"*/
-/*#define CONFIG_BOOTCOMMAND "tftpboot xxx/uImage; bootm"*/
+#if defined CONFIG_GET_WIFI_MAC
+#define BOOTARGS_COMMON BOOTARGS_BASE "wifi_mac=xxxxxxxxxxxx "
+#else
+#define BOOTARGS_COMMON BOOTARGS_BASE
+#endif
 
-	#define CONFIG_BOOTARGS BOOTARGS_COMMON " ip=192.168.10.205:192.168.10.1:192.168.10.1:255.255.255.0  nfsroot=192.168.4.13:/home/nfsroot/fpga/rootfs rw"
-	#define CONFIG_BOOTCOMMAND "tftpboot 0x80600000 fpga/user/your_dir/your_uImage;bootm"
-
-	/*#define CONFIG_BOOTARGS BOOTARGS_COMMON "ip=off root=/dev/ram0 rw rdinit=/linuxrc"
-	  #define CONFIG_BOOTCOMMAND "mmc read 0x80f00000 0x1800 0x1000; bootm 0x80f00000"*/
-
-	#endif
+/* uboot load kernel settings. */
+#if defined(CONFIG_SPL_SFC_NOR)
+	#define CONFIG_BOOTARGS BOOTARGS_COMMON "ip=off init=/linuxrc rootfstype=cramfs root=/dev/mtdblock4 rw"
+	#define CONFIG_BOOTCOMMAND "sfcnor read 0x40000 0x800000 0x80800000 ;bootm 0x80800000"
+#elif defined(CONFIG_SPL_SFC_NAND)
+	#define CONFIG_BOOTARGS BOOTARGS_COMMON "ip=off init=/linuxrc ubi.mtd=3 ubi.mtd=4 root=ubi0:updater rootfstype=ubifs rw"
+	#define CONFIG_BOOTCOMMAND "sfcnand read 0x100000 0x400000 0x80600000 ;bootm 0x80600000"
 #elif defined(CONFIG_SPL_JZMMC_SUPPORT)
-	#if defined(CONFIG_JZ_MMC_MSC0)
-		#ifdef CONFIG_GPT_CREATOR
-			#define CONFIG_BOOTARGS BOOTARGS_COMMON " root=/dev/mmcblk0p7 rootfstype=ext4 rw"
-			#define CONFIG_BOOTCOMMAND "mmc dev 0;mmc read 0x80600000 0x1800 0x3000; bootm 0x80600000"
-		#else
-			#define CONFIG_BOOTARGS BOOTARGS_COMMON " root=/dev/mmcblk0p1 rootfstype=ext4 rw"
-			#define CONFIG_BOOTCOMMAND "mmc dev 0;mmc read 0x80600000 0x1800 0x3000; bootm 0x80600000"
-		#endif
-	#else
-		#define CONFIG_BOOTARGS BOOTARGS_COMMON " root=/dev/mmcblk0p1 rootfstype=ext4 rw"
-		#define CONFIG_BOOTCOMMAND "mmc dev 1;mmc read 0x80600000 0x1800 0x3000; bootm 0x80600000"
+	/* 1. X1000 ONLY support boot from msc0; 2. canna board ONLY support gpt partitions */
+	#if defined(CONFIG_JZ_MMC_MSC0) || defined(CONFIG_GPT_CREATOR)
+		#define CONFIG_BOOTARGS BOOTARGS_COMMON " root=/dev/mmcblk0p7 rootfstype=ext4 rw"
+		#define CONFIG_BOOTCOMMAND "mmc dev 0;mmc read 0x80600000 0x1800 0x3000; bootm 0x80600000"
 	#endif
 #endif
 
+/* spl load kernel settings. */
 #ifdef CONFIG_SPL_OS_BOOT
-#define CONFIG_SPL_OS_OFFSET        (0x100000) /* spi offset of zImage being loaded */
+	#define CONFIG_SPL_NV_BASE          CONFIG_SYS_TEXT_BASE
+	#ifdef CONFIG_SPL_SFC_NAND
+		#define CONFIG_SPL_OS_OFFSET        (0x200000) /* spi offset of zImage being loaded */
+		#define CONFIG_SPL_OTA_OS_OFFSET       (0x4500000) /* spi offset of zImage being loaded */
+		#define NV_AREA_BASE_ADDR           (0x100000)
+		#define CONFIG_SPL_BOOTARGS         BOOTARGS_COMMON "ip=off init=/linuxrc ubi.mtd=3 ubi.mtd=4 root=ubi0:updater rootfstype=ubifs rw"
+		#define CONFIG_SPL_OTA_BOOTARGS     BOOTARGS_COMMON "ip=off init=/linuxrc ubi.mtd=5 root=ubi0:updater rootfstype=ubifs rw"
+	#elif defined CONFIG_SPL_SFC_NOR
+		#define CONFIG_SPL_OS_OFFSET        (0x100000) /* spi offset of zImage being loaded */
+		#define CONFIG_SPL_OTA_OS_OFFSET       (0xd00000) /* spi offset of zImage being loaded */
+		#define NV_AREA_BASE_ADDR           (0x40000)
+		#define CONFIG_SPL_BOOTARGS         BOOTARGS_COMMON "ip=off init=/linuxrc rootfstype=cramfs root=/dev/mtdblock4 rw"
+		#define CONFIG_SPL_OTA_BOOTARGS     BOOTARGS_COMMON "ip=off init=/linuxrc rootfstype=cramfs root=/dev/mtdblock5 rw"
+	#elif defined CONFIG_SPL_JZMMC_SUPPORT
+		/* 1. X1000 ONLY support boot from msc0; 2. canna board ONLY support gpt partitions */
+		#ifdef CONFIG_JZ_MMC_MSC0
+			#ifdef CONFIG_GPT_CREATOR
+				#define CONFIG_GPT_TABLE_PATH	"$(TOPDIR)/board/$(BOARDDIR)"
+				#define CONFIG_SPL_OS_OFFSET        (0x200000) /* mmc offset of zImage being loaded */
+				#define CONFIG_SPL_OTA_OS_OFFSET    (0x13100000) /* mmc offset of ota zImage being loaded */
+				#define NV_AREA_BASE_ADDR           (0x100000) /* mmc offset of nv being loaded */
+				#define CONFIG_SPL_BOOTARGS     BOOTARGS_COMMON " ip=off init=/linuxrc root=/dev/mmcblk0p4 rootfstype=ext4 rw"
+				#define CONFIG_SPL_OTA_BOOTARGS BOOTARGS_COMMON " ip=off init=/linuxrc root=/dev/mmcblk0p6 rootfstype=ext4 rw"
+			#endif /* CONFIG_GPT_CREATOR */
+		#endif /* CONFIG_JZ_MMC_MSC0 */
+	#endif /* CONFIG_SPL_JZMMC_SUPPORT */
+	#define CONFIG_SYS_SPL_ARGS_ADDR      CONFIG_SPL_BOOTARGS
+	#define CONFIG_SYS_SPL_OTA_ARGS_ADDR  CONFIG_SPL_OTA_BOOTARGS
+#else /* CONFIG_SPL_OS_BOOT */
 
-#ifdef CONFIG_GET_WIFI_MAC
-#define CONFIG_SPL_BOOTARGS         BOOTARGS_COMMON "ip=off init=/linuxrc rootfstype=cramfs root=/dev/mtdblock3 wifi_mac=xxxxxxxxxxxx rw"
-#else
-#define CONFIG_SPL_BOOTARGS         BOOTARGS_COMMON "ip=off init=/linuxrc rootfstype=cramfs root=/dev/mtdblock3 rw"
-#endif
-#define CONFIG_SYS_SPL_ARGS_ADDR    CONFIG_SPL_BOOTARGS
-
-#ifdef CONFIG_UPDATE_SD
-#define CONFIG_BOOTX_BOOTARGS       BOOTARGS_COMMON "ip=off root=/dev/ram0 rw rdinit=/linuxrc"
-#undef CONFIG_BOOTCOMMAND
-#define CONFIG_BOOTCOMMAND          "bootx fat mmc 0:auto 0x80f00000 zImage-ramfs"
-#else
-#define CONFIG_BOOTX_BOOTARGS       BOOTARGS_COMMON "ip=off init=/linuxrc rootfstype=cramfs root=/dev/mtdblock4 rw"
-#undef CONFIG_BOOTCOMMAND
-#define CONFIG_BOOTCOMMAND          "bootx sfc 0x80f00000 0xd00000"
-#endif /* CONFIG_UPDATE_SD */
 #endif /* CONFIG_SPL_OS_BOOT */
 
 #define PARTITION_NUM 10
@@ -342,7 +346,9 @@
 #endif
 #define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR	0x3A /* 12KB+17K offset */
 #define CONFIG_SYS_U_BOOT_MAX_SIZE_SECTORS	0x200 /* 256 KB */
+#ifndef CONFIG_SMALLER_SPL
 #define CONFIG_SPL_SERIAL_SUPPORT
+#endif
 #define CONFIG_SPL_GPIO_SUPPORT
 #define CONFIG_SPL_LIBGENERIC_SUPPORT
 #if defined(CONFIG_SPL_NOR_SUPPORT)
@@ -350,7 +356,6 @@
 #define CONFIG_SYS_UBOOT_BASE		(CONFIG_SPL_TEXT_BASE + CONFIG_SPL_PAD_TO - 0x40)
 					/* 0x40 = sizeof (image_header)*/
 #define CONFIG_SYS_OS_BASE		0
-#define CONFIG_SYS_SPL_ARGS_ADDR	0
 #define CONFIG_SYS_FDT_BASE		0
 #define CONFIG_SPL_PAD_TO		32768
 #define CONFIG_SPL_MAX_SIZE		(32 * 1024)
@@ -368,7 +373,6 @@
 #define CONFIG_SPL_TEXT_BASE		0xf4001000
 #define CONFIG_SPL_MAX_SIZE		(12 * 1024)
 #define CONFIG_SPL_PAD_TO		16384
-#define CONFIG_SPL_SFC_NAND
 #define CONFIG_MTD_SFCNAND
 #define CONFIG_JZ_SFC
 #define CONFIG_CMD_SFCNAND
@@ -376,7 +380,6 @@
 #define CONFIG_SPI_SPL_CHECK
 #define CONFIG_SYS_MAX_NAND_DEVICE	1
 #define CONFIG_SYS_NAND_BASE    0xb3441000
-#define CONFIG_SYS_MAXARGS	6
 
 /*SFCNAND env*/
 /* spi nand environment */
@@ -386,7 +389,6 @@
 #define CONFIG_ENV_SIZE         SPI_NAND_BLK /* uboot is 1M but the last block size is the env*/
 #define CONFIG_ENV_OFFSET       0xc0000 /* offset is 768k */
 #define CONFIG_ENV_OFFSET_REDUND (CONFIG_ENV_OFFSET + CONFIG_ENV_SIZE)
-#define CONFIG_ENV_IS_IN_SFC_NAND
 
 #else
 #define CONFIG_SPI_SPL_CHECK
@@ -432,29 +434,6 @@
 #define CONFIG_NOR_VERSION     (CONFIG_NOR_MAJOR_VERSION_NUMBER | (CONFIG_NOR_MINOR_VERSION_NUMBER << 8) | (CONFIG_NOR_REVERSION_NUMBER <<16))
 #endif
 
-
-/**
- * MBR configuration
- */
-#ifdef CONFIG_MBR_CREATOR
-#define CONFIG_MBR_P0_OFF	64mb
-#define CONFIG_MBR_P0_END	556mb
-#define CONFIG_MBR_P0_TYPE 	linux
-
-#define CONFIG_MBR_P1_OFF	580mb
-#define CONFIG_MBR_P1_END 	1604mb
-#define CONFIG_MBR_P1_TYPE 	linux
-
-#define CONFIG_MBR_P2_OFF	28mb
-#define CONFIG_MBR_P2_END	58mb
-#define CONFIG_MBR_P2_TYPE 	linux
-
-#define CONFIG_MBR_P3_OFF	1609mb
-#define CONFIG_MBR_P3_END	7800mb
-#define CONFIG_MBR_P3_TYPE 	fat
-#else
-#define CONFIG_GPT_TABLE_PATH	"$(TOPDIR)/board/$(BOARDDIR)"
-#endif
 
 /*
 * MTD support
